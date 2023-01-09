@@ -26,18 +26,18 @@ function monitor_temperature_and_humidity()
 	 
 	  -- Formulate email. Read the comments on what each section does for clarification!!!!!!
 	  local smtpparams={
-	  header = {To = 'info@masswellspring.org'; 
-				From = 'device@masswellspring.org';  
+	  header = {To = 'REDACTED'; 
+				From = 'REDACTED';  
 				Date = ''; -- Probably irrelevant
 				Subject = 'Humidity Sensor Update';},
-	  username = 'device@masswellspring.org',
-	  password = 'devicewellspring2022',
-	  server = 'mail.masswellspring.org',
+	  username = 'REDACTED',
+	  password = 'REDACTED',
+	  server = 'REDACTED',
 	  -- note that the "to" param is actually what is used to send the email, 
 	  -- the entries in header are only used for display. 
 	  -- For instance, to do Bcc, add the address in the  'to' parameter but 
 	  -- omit it from the header.
-	  to = {'info@masswellspring.org'},
+	  to = {'REDACTED'},
 	  from = 'DIN Relay 4 Humidity Test',
 	  body = temperature_message .. "\n" .. humidity_message,
 	  use_ssl = 'try',

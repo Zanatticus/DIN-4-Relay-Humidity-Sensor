@@ -1,0 +1,238 @@
+-- Local functions
+
+local kelvin_to_fahrenheit
+
+local celsius_to_fahrenheit
+
+
+
+-- Local Variables
+
+local PUMP=1 -- Humidity pump outlet
+
+
+
+-- Start the scripts running
+
+-- Allows us to have multiple scripts running at once.
+
+function start_my_scripts()
+
+  thread.run(monitor_temperature_and_humidity, "Monitor Environment", "MonitorEnvironment")  
+
+end
+
+
+
+
+
+-- Log temperature and humidity every 10 minutes
+
+function monitor_temperature_and_humidity()
+
+  thread.limit(1)  
+
+  while true do 
+
+    local now=os.date("*t")
+
+    if now.min%10 == 0 then
+
+      log_temperature()
+
+      log_humidity()
+
+	 
+	  -- Formulate email. Read the comments on what each section does for clarification!!!!!!
+
+	  local smtpparams={
+
+	  header = {To = 'info@masswellspring.org'; 
+
+				From = 'device@masswellspring.org';  
+
+				Date = ''; -- Probably irrelevant
+
+				Subject = 'Humidity Sensor Update';},
+
+	  
+
+	  username = 'device@masswellspring.org',
+
+	  password = 'devicewellspring2022',
+
+	  server = 'mail.masswellspring.org',
+
+	  
+
+	  -- note that the "to" param is actually what is used to send the email, 
+
+	  -- the entries in header are only used for display. 
+
+	  -- For instance, to do Bcc, add the address in the  'to' parameter but 
+
+	  -- omit it from the header.
+
+	  to = {'info@masswellspring.org'},
+
+	  from = 'DIN Relay 4 Humidity Test',
+
+	  body = temperature_message .. "\n" .. humidity_message,
+
+	  use_ssl = 'try',
+
+	  live = true
+
+   } 
+
+ 
+
+	net.smtp.send(smtpparams)
+
+  
+
+  
+
+    end
+
+    delay(60)
+
+  end
+
+end  
+
+
+
+-- Log the temperature for the past day
+
+function log_temperature(sensor)
+
+  sensor = sensor or "sensors.0.temperature"    
+
+  local now=os.time()
+
+  log.notice(sensor)
+
+  local temperature=meter.values[sensor] or nil
+
+  if temperature.value then
+
+    log.notice("Current temperature is %1.1fÃ‚ÂºF, current time is %s",kelvin_to_fahrenheit(temperature.value),os.date("%H:%M:%S",now))
+
+	temperature_message = "Current temperature is %1.1fÃ‚ÂºF, current time is %s",kelvin_to_fahrenheit(temperature.value),os.date("%H:%M:%S",now)
+	
+	temperature_string = string.format("%1.1fÃ‚ÂºF",kelvin_to_fahrenheit(temperature.value)) -- To be displayed on the LCD
+	
+	ui.line[1] = "Temp: " .. temperature_string .. "    " --  Needs to be 16 characters long?
+
+  else
+
+    log.notice("No temperature meter found!")
+
+	temperature_message = "No temperature meter found!"
+	
+	ui.line[1] = "Temp: N/A       " -- Needs to be 16 characters long?
+
+  end
+
+end
+
+
+
+-- Log Humidity
+
+function log_humidity(sensor)
+
+  sensor = sensor or "sensors.0.relative_humidity"
+
+  local now=os.time()
+
+  log.notice(sensor)
+
+  local humidity=meter.values[sensor] or nil 
+
+  if humidity.value then
+
+    log.notice("Current relative humidity is %1.1f%%, current time is %s",humidity.value*100,os.date("%H:%M:%S",now))
+
+	humidity_message = "Current relative humidity is %1.1f%%, current time is %s",humidity.value*100,os.date("%H:%M:%S",now)
+	
+	humidity_string = string.format("%1.1f%%", humidity.value*100) -- To be displayed on the LCD
+	
+	ui.line[2] = "Humidity: " .. humidity_string .. " " -- Needs to be 16 chars long?
+	
+	if humidity.value*100 >= 70 and outlet[PUMP].state == off then
+
+		outlet[PUMP].on()
+
+	else
+
+		if humidity.value*100 <= 65 and outlet[PUMP].state == on then
+
+			outlet[PUMP].off()
+
+		end
+
+    end
+
+  else
+
+    log.notice("No humidity meter found!")
+
+	humidity_message = "No humidity meter found!"
+	
+	ui.line[2] = "Humidity: N/A   " -- Needs to be 16 chars long?
+
+  end
+
+end
+
+
+
+
+
+--[[
+
+-----------------------------
+
+  Some local functions
+
+-----------------------------
+
+--]]
+
+
+
+-- local 
+
+function kelvin_to_fahrenheit(t)
+
+  if not tonumber(t) then
+
+    log.err("Invalid temperature")
+
+    return 0
+
+  end 
+
+  return (t - 273.16) * 9/5 + 32
+
+end
+
+
+
+-- local 
+
+function celsius_to_fahrenheit(t)
+
+  if not tonumber(t) then
+
+    log.err("Invalid temperature")
+
+    return 0
+
+  end 
+
+  return t * 9 / 5 + 32 
+
+end
